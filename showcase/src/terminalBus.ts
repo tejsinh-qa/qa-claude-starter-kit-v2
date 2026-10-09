@@ -19,7 +19,7 @@ export function attachSession(name: SessionName, send: (data: string) => void) {
 /** Called for every chunk the terminal prints, so typing can wait for the screen instead of a fixed delay. */
 export function noteOutput(name: SessionName, data: string) {
   const entry = recent[name]
-  entry.text = (entry.text + data).slice(-20000)
+  entry.text = (entry.text + data).slice(-120000)
   entry.at = Date.now()
 }
 
@@ -35,13 +35,18 @@ async function waitForQuiet(name: SessionName, quietMs: number, maxMs: number) {
   }
 }
 
-/** Whichever was drawn last wins: Claude's footer, or a PowerShell prompt. Survives a page reload. */
+/**
+ * Whichever was drawn last wins: a Claude Code marker, or a PowerShell prompt. Survives a page reload.
+ * Claude redraws only the cells that change, so its footer can be far back in the output.
+ */
 function claudeOnScreen(name: SessionName): boolean | null {
-  const screen = plain(recent[name].text.slice(-6000))
+  const screen = plain(recent[name].text)
   const footer = Math.max(
     screen.lastIndexOf('shift+tab'),
     screen.lastIndexOf('for shortcuts'),
     screen.lastIndexOf('esc to interrupt'),
+    screen.lastIndexOf('for agents'),
+    screen.lastIndexOf('❯'),
   )
   let lastShell = -1
   for (const match of screen.matchAll(/PS [A-Za-z]:\\[^\n>]*>/g)) lastShell = match.index

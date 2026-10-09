@@ -3,7 +3,7 @@ import { SCENES, sceneUsesTerminal } from './content/scenes'
 import { gateReason, preflightChecks, type Preflight } from './preflight'
 import { Stage } from './Stage'
 import { TerminalDeck } from './TerminalDeck'
-import { typeLines } from './terminalBus'
+import { typeLines, type SessionName } from './terminalBus'
 
 const LAST = SCENES.length - 1
 const ZOOM_STEPS = [0.9, 1, 1.1, 1.2, 1.3, 1.45, 1.6]
@@ -31,8 +31,10 @@ export function App() {
   const [sending, setSending] = useState<string | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
   const [zoom, setZoom] = useState(initialZoom)
+  const [shownSession, setShownSession] = useState<{ scene: number; session: SessionName } | null>(null)
   const scene = SCENES[index]
   const usesTerminal = sceneUsesTerminal(scene)
+  const visibleSession = shownSession?.scene === index ? shownSession.session : scene.window
   const blocked = gateReason(preflight, serverDown)
 
   useEffect(() => {
@@ -117,6 +119,7 @@ export function App() {
     if (!session || !lines) return
     if (replay && (replay.includes('..') || replay.includes('/') || replay.includes('\\') || replay === 'sample_run.json')) return
     setRunError(null)
+    setShownSession({ scene: index, session })
     setSending(actionId)
     try {
       await typeLines(session, lines)
@@ -168,7 +171,7 @@ export function App() {
           <Stage scene={scene} preflight={preflight} blocked={blocked} sending={sending} onRun={(id) => void onRun(id)} />
           {runError ? <p className="gate run-error">{runError}</p> : null}
         </main>
-        <TerminalDeck active={usesTerminal ? scene.window : null} fontSize={Math.round(16 * zoom)} />
+        <TerminalDeck active={usesTerminal ? visibleSession : null} fontSize={Math.round(16 * zoom)} />
         {notesOpen ? (
           <aside className="notes" aria-label="Speaker notes">
             <p className="notes-label">Speaker</p>
