@@ -40,6 +40,11 @@ PAIRS = [
         "Running F09 shows one label.",
         "An eval marks ten failures whose answers you already know.",
     ),
+    (
+        "RAG vs retraining",
+        "RAG looks the answer up in your docs at the moment you ask, and cites the page. Retraining changes the model itself.",
+        "For product rules that change every release, look them up. The product agent searches product-docs/; nothing is retrained.",
+    ),
 ]
 
 print("Common mix-ups")

@@ -18,6 +18,9 @@ Companion to the BrowserStack QA Meetup talk by Tejsinh Pratap Wagh.
 | `api-examples/qa_model_router.py` | **Claude API** — routing + prompt caching | Right model per QA task, cached shared context |
 | `api-examples/nightly_failure_triage_batch.py` | **Claude API** — Message Batches | Bulk, non-urgent failure triage at a discount |
 | `triage-agent/` | **Claude Agent SDK** — custom in-process tools | An agent that investigates a failed test and returns INFRA / TEST / PRODUCT with evidence |
+| `.claude/skills/product-context/` | **Skill** | Answers product questions from `product-docs/` with a citation, and says so when the docs are silent |
+| `product-agent/` | **Claude Agent SDK** — retrieval tools (RAG) | Searches the product docs, answers only from what it found, and cites `file#section`. Offline `--search` shows retrieval alone |
+| `product-docs/` | — | Fictional TravelDesk product docs: sign-in rules, password policy, release notes, test environments |
 | `evals/` | **Evaluation** — golden set, trajectory checks, LLM judge | Scores the agent in three layers and fails the build below threshold; replays saved runs offline |
 | `docs/model-guide.md` | — | Which model for which QA task |
 | `docs/prompting-patterns.md` | — | 10 prompting patterns that work for QA |

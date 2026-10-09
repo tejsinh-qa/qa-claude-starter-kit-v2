@@ -628,7 +628,7 @@ export const SCENES: DemoScene[] = [
     why: 'Each pair is the difference, then an example from this login suite. Nothing here calls the API. The habits screen is the rules. This screen is the questions.',
     window: 'agent',
     command: '.\\.venv\\Scripts\\python.exe demo\\show_mixups.py',
-    watch: 'Eight headings, from Skill vs agent through One demo run vs an eval.',
+    watch: 'Nine headings, from Skill vs agent through RAG vs retraining.',
     drift: 'Read the list on this screen if the terminal is still on the habits.',
     steps: [
       'Skill vs agent. A skill is the recipe card. An agent is the cook who can follow it and look things up. The test-case skill writes a table in the chat. The triage agent is sent failure F09 and comes back with PRODUCT, TEST, or INFRA.',
@@ -639,6 +639,7 @@ export const SCENES: DemoScene[] = [
       'CLAUDE.md vs skill. CLAUDE.md is the house rule on the wall: accessible locators, no hard waits. A skill is the procedure for one job, such as turning a story into cases.',
       'Claude API vs Agent SDK. The API is one question and one answer, such as “label this failure.” The SDK is a loop: Claude asks for the log, the program returns it, Claude asks for the history, then it decides.',
       'One demo run vs an eval. Running F09 shows one label. An eval marks ten failures whose answers you already know.',
+      'RAG vs retraining. RAG looks the answer up in your docs at the moment you ask, and cites the page. Retraining changes the model. For product rules that change every release, look them up.',
     ],
     actions: [
       {
@@ -725,6 +726,64 @@ export const SCENES: DemoScene[] = [
     actions: [],
     notes:
       'Use in Q&A when someone asks “why not Cursor?”. Products change month to month; check the Antigravity and Codex rows the day before.',
+  },
+  {
+    id: 'product-context',
+    group: 'Wrap up',
+    nav: 'RAG: answer from your product docs',
+    at: '13:50',
+    title: 'RAG: answer from your product docs',
+    about: 'How do I give Claude context about my product? Let it look things up in your docs, then answer with the page it used.',
+    why: 'RAG, retrieval-augmented generation, means find the right page first, then answer from it. Nothing is retrained. The story said “temporarily locked” and never said for how long. The product docs say 15 minutes, which answers the open question from the first demo.',
+    window: 'agent',
+    command:
+      '.\\.venv\\Scripts\\python.exe product-agent\\agent.py "How long is an account locked after failed sign-ins, and who can unlock it early?"',
+    watch: 'An answer that cites sign-in.md#Lockout, “in the docs: yes”, and a tool trail starting with search_docs.',
+    drift: 'Press Search the docs. It shows the same retrieval with no API call.',
+    steps: [
+      'A few facts: CLAUDE.md. It is loaded every session, so keep it short.',
+      'A folder of docs: the product-context skill. Claude Code searches product-docs/ itself and cites the file. No vector database.',
+      'A helper that runs without you: the Agent SDK with search_docs and read_doc tools, and nothing else.',
+      'At company scale: put your vector store, Confluence, or Jira behind the same search tool through MCP. The skill and the agent stay the same.',
+    ],
+    actions: [
+      {
+        id: 'search-docs',
+        label: 'Search the docs',
+        session: 'agent',
+        kind: 'run',
+        lines: [
+          'Clear-Host',
+          '.\\.venv\\Scripts\\python.exe product-agent\\agent.py --search "how long is the account locked after failed sign-ins"',
+        ],
+      },
+      {
+        id: 'ask-docs',
+        label: 'Ask the agent',
+        session: 'agent',
+        kind: 'follow',
+        lines: [
+          'Clear-Host',
+          '.\\.venv\\Scripts\\python.exe product-agent\\agent.py "How long is an account locked after failed sign-ins, and who can unlock it early?"',
+        ],
+      },
+      {
+        id: 'ask-missing',
+        label: 'Ask something not in the docs',
+        session: 'agent',
+        kind: 'follow',
+        lines: ['.\\.venv\\Scripts\\python.exe product-agent\\agent.py "Does sign-in support two-factor authentication by SMS?"'],
+      },
+      {
+        id: 'skill-docs',
+        label: 'Use the skill in Claude Code',
+        session: 'main',
+        kind: 'fallback',
+        lines: ['/product-context How long is a TravelDesk account locked after three failed sign-ins? Does TD-142 say so?'],
+      },
+    ],
+    notes:
+      'Q&A, when someone asks about RAG or product context. Search first (free), then Ask the agent. The not-in-the-docs question should come back “in the docs: no”. That refusal is the point.',
   },
   {
     id: 'kit',
