@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "recorded_at": "illustrative sample",
+    "model": "claude-sonnet-5",
+    "illustrative": true,
+    "_note": "Hand-written sample showing the shape of a recording and the F09 failure story. Not real agent output. Record a real run with: python evals/run_evals.py --live --judge"
+  },
+  "results": [
+    {
+      "id": "F01",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "INFRA",
+        "reason": "Connection refused to staging and 41 other tests failed in the same run with no recent changes, so the environment was down.",
+        "next_step": "Check staging health and re-run once it is reachable."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Cites the same-run failure count and the absence of changes."
+      }
+    },
+    {
+      "id": "F02",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "INFRA",
+        "reason": "Playwright was bumped to 1.64.0 by dependabot but the runner still has the old browser build, so launch fails before any test runs.",
+        "next_step": "Add 'npx playwright install' to the CI image after dependency updates."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Names the dependabot change and the missing browser."
+      }
+    },
+    {
+      "id": "F03",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "INFRA",
+        "reason": "Navigation timed out and 44 tests failed in the same run with no app changes.",
+        "next_step": "Check staging load and network from the CI runner."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 4,
+        "critique": "Correct, but doesn't separate timeout from refusal."
+      }
+    },
+    {
+      "id": "F04",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "TEST",
+        "reason": "An approved SSO button now also matches the 'Sign in' locator, causing a strict mode violation.",
+        "next_step": "Use getByRole('button', { name: 'Sign in', exact: true })."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Ties the failure to the approved change and gives an exact fix."
+      }
+    },
+    {
+      "id": "F05",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "TEST",
+        "reason": "It fails intermittently (4/10) and relies on a 300ms hard wait before a non-retrying check.",
+        "next_step": "Remove waitForTimeout and rely on the retrying toHaveText assertion."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history"
+      ],
+      "turns": 3,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Uses both the flaky history and the hard wait."
+      }
+    },
+    {
+      "id": "F06",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "TEST",
+        "reason": "The test looks for a 'Login' button that was renamed to 'Sign in' in an approved change.",
+        "next_step": "Update the locator to 'Sign in'."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 4,
+        "critique": "Correct; could mention the change was approved UX copy."
+      }
+    },
+    {
+      "id": "F07",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "PRODUCT",
+        "reason": "The error now reveals the email and which field was wrong, which breaks the generic-error requirement; the change had no ticket.",
+        "next_step": "Raise a bug against commit e2f88b1 referencing AC4."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Links the behaviour to the requirement and the unticketed commit."
+      }
+    },
+    {
+      "id": "F08",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "PRODUCT",
+        "reason": "After the attempt-counter refactor the Sign in button stays enabled after 3 failures, so lockout no longer works.",
+        "next_step": "Raise a bug against commit f01a7c3."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 5,
+        "critique": "Cites the refactor and the broken lockout behaviour."
+      }
+    },
+    {
+      "id": "F09",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "INFRA",
+        "reason": "The click timed out after 30 seconds, which suggests the environment was slow or unresponsive.",
+        "next_step": "Re-run the test and check staging performance."
+      },
+      "tool_calls": [
+        "read_failure"
+      ],
+      "turns": 2,
+      "cost_usd": null
+    },
+    {
+      "id": "F10",
+      "model": "claude-sonnet-5",
+      "verdict": {
+        "category": "TEST",
+        "reason": "Fails only intermittently since parallel runs were enabled, with other workers sharing the same account.",
+        "next_step": "Give each worker its own test account."
+      },
+      "tool_calls": [
+        "read_failure",
+        "get_test_history",
+        "get_recent_changes"
+      ],
+      "turns": 4,
+      "cost_usd": null,
+      "judge": {
+        "score": 3,
+        "critique": "Right call, but generic about why sharing the account triggers lockout."
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "_note": "Ground-truth labels for the triage agent. Kept separate from the fixtures so the agent never sees the answers. 'why' is the reasoning a human reviewer agreed on, used by the LLM judge as a reference.",
+  "required_tools": ["read_failure", "get_test_history"],
+  "max_tool_calls": 6,
+  "cases": [
+    {"id": "F01", "expected": "INFRA",   "why": "Connection refused to staging, 41 tests failed in the same run, no recent changes: the environment was down."},
+    {"id": "F02", "expected": "INFRA",   "why": "Playwright was upgraded by dependabot but browsers were not reinstalled on the runner; tooling, not app or test."},
+    {"id": "F03", "expected": "INFRA",   "why": "Navigation timeout with 44 failures in the same run and no changes: staging was unreachable or overloaded."},
+    {"id": "F04", "expected": "TEST",    "why": "An approved SSO button made the 'Sign in' locator ambiguous; the locator needs to be exact, the app is correct."},
+    {"id": "F05", "expected": "TEST",    "why": "Intermittent 4/10 failures and a hard waitForTimeout before a non-retrying check: classic flaky test."},
+    {"id": "F06", "expected": "TEST",    "why": "The button was renamed 'Sign in' in an approved change; the test still expects 'Login' and is outdated."},
+    {"id": "F07", "expected": "PRODUCT", "why": "The error now names the field and the email, violating the requirement for a generic error (AC4); unapproved change."},
+    {"id": "F08", "expected": "PRODUCT", "why": "After a counter refactor the button stays enabled after 3 failures: lockout requirement (AC5) is broken."},
+    {"id": "F09", "expected": "PRODUCT", "why": "Looks like a timeout, but the button is disabled after only one earlier failure; the same counter refactor stopped resetting the counter. A real bug, not infra.", "tricky": true},
+    {"id": "F10", "expected": "TEST",    "why": "Fails only when parallel workers share one account after fullyParallel was enabled; test data isolation problem."}
+  ]
+}

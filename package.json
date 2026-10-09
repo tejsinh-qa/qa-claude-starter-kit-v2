@@ -1,0 +1,14 @@
+{
+  "name": "qa-claude-starter-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Starter kit: using Claude effectively as a QA engineer (CLAUDE.md, skills, subagents, hooks, API examples)",
+  "scripts": {
+    "test": "playwright test",
+    "test:flaky-check": "playwright test --repeat-each=10 --reporter=line",
+    "showcase": "npm --prefix showcase run dev"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

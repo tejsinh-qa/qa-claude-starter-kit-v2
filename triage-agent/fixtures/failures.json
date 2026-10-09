@@ -1,0 +1,95 @@
+{
+  "_note": "Fixture data for the workshop. Each failure is a realistic Playwright failure from a fictional nightly run of the TravelDesk login suite. Ground-truth labels live separately in evals/golden_set.json so the agent never sees them.",
+  "failures": [
+    {
+      "id": "F01",
+      "test": "login.spec.ts > signs in with valid credentials",
+      "run": "nightly-2026-10-05",
+      "output": "Error: page.goto: net::ERR_CONNECTION_REFUSED at https://staging.traveldesk.example/login\nCall log:\n  - navigating to \"https://staging.traveldesk.example/login\", waiting until \"load\"",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail"],
+      "same_run_failures": 41,
+      "recent_changes": []
+    },
+    {
+      "id": "F02",
+      "test": "login.spec.ts > shows required error when email is empty",
+      "run": "nightly-2026-10-05",
+      "output": "Error: browserType.launch: Executable doesn't exist at /ms-playwright/chromium-1201/chrome-linux/chrome\n  Looks like Playwright was just updated to 1.64.0. Please run: npx playwright install",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail"],
+      "same_run_failures": 38,
+      "recent_changes": [{"commit": "a41c2e9", "file": "package-lock.json", "summary": "Bump @playwright/test 1.63.0 -> 1.64.0 (dependabot)"}]
+    },
+    {
+      "id": "F03",
+      "test": "login.spec.ts > locks account after 3 failed attempts",
+      "run": "nightly-2026-10-06",
+      "output": "Error: Test timeout of 30000ms exceeded.\nError: page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://staging.traveldesk.example/login\", waiting until \"load\"",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail"],
+      "same_run_failures": 44,
+      "recent_changes": []
+    },
+    {
+      "id": "F04",
+      "test": "login.spec.ts > shows welcome message after sign in",
+      "run": "nightly-2026-10-06",
+      "output": "Error: locator.click: Error: strict mode violation: getByRole('button', { name: 'Sign in' }) resolved to 2 elements:\n  1) <button id=\"submit\">Sign in</button>\n  2) <button id=\"sso\">Sign in with SSO</button>",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail", "fail", "fail"],
+      "same_run_failures": 3,
+      "recent_changes": [{"commit": "7be01d4", "file": "demo/app/login.html", "summary": "Add 'Sign in with SSO' button (feature TD-151, approved)"}]
+    },
+    {
+      "id": "F05",
+      "test": "login.spec.ts > clears error after a successful retry",
+      "run": "nightly-2026-10-06",
+      "output": "Error: expect(locator).toHaveText(expected) failed\nLocator: getByRole('alert')\nExpected: \"\"\nReceived: \"Incorrect email or password.\"\n  > 42 |   await page.waitForTimeout(300);\n    43 |   await expect(page.getByRole('alert')).toHaveText('');",
+      "history": ["pass", "fail", "pass", "pass", "fail", "pass", "pass", "fail", "pass", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": []
+    },
+    {
+      "id": "F06",
+      "test": "login.spec.ts > submit button is labelled Login",
+      "run": "nightly-2026-10-07",
+      "output": "Error: expect(locator).toBeVisible() failed\nLocator: getByRole('button', { name: 'Login' })\nExpected: visible\nReceived: <element(s) not found>",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "fail", "fail", "fail", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": [{"commit": "c9d3a10", "file": "demo/app/login.html", "summary": "Rename submit button 'Login' -> 'Sign in' per UX copy guide (TD-147, approved)"}]
+    },
+    {
+      "id": "F07",
+      "test": "login.spec.ts > shows generic error for wrong credentials",
+      "run": "nightly-2026-10-07",
+      "output": "Error: expect(locator).toHaveText(expected) failed\nLocator: getByRole('alert')\nExpected: \"Incorrect email or password.\"\nReceived: \"Incorrect password for traveller@example.com.\"",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": [{"commit": "e2f88b1", "file": "demo/app/login.html", "summary": "Make login errors more helpful (no ticket)"}]
+    },
+    {
+      "id": "F08",
+      "test": "login.spec.ts > locks account after 3 failed attempts",
+      "run": "nightly-2026-10-08",
+      "output": "Error: expect(locator).toBeDisabled() failed\nLocator: getByRole('button', { name: 'Sign in' })\nExpected: disabled\nReceived: enabled",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": [{"commit": "f01a7c3", "file": "demo/app/login.html", "summary": "Refactor attempt counter into a helper"}]
+    },
+    {
+      "id": "F09",
+      "test": "login.spec.ts > signs in after a previous failed attempt",
+      "run": "nightly-2026-10-08",
+      "output": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByRole('button', { name: 'Sign in' })\n  - locator resolved to <button disabled id=\"submit\">Sign in</button>\n  - element is not enabled\n  - retrying click action, attempt #57",
+      "history": ["pass", "pass", "pass", "pass", "pass", "pass", "pass", "pass", "fail", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": [{"commit": "f01a7c3", "file": "demo/app/login.html", "summary": "Refactor attempt counter into a helper"}]
+    },
+    {
+      "id": "F10",
+      "test": "login.spec.ts > locks account after 3 failed attempts",
+      "run": "nightly-2026-10-09",
+      "output": "Error: expect(locator).toContainText(expected) failed\nLocator: getByRole('alert')\nExpected substring: \"temporarily locked\"\nReceived: \"Incorrect email or password.\"\nNote: test ran with 4 parallel workers; 3 other workers used the same account traveller@example.com",
+      "history": ["pass", "pass", "fail", "pass", "pass", "fail", "pass", "pass", "pass", "fail"],
+      "same_run_failures": 1,
+      "recent_changes": [{"commit": "1d9e5aa", "file": "playwright.config.ts", "summary": "Enable fullyParallel: true to cut suite time"}]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+node_modules/
+test-results/
+playwright-report/
+__pycache__/
+*.pyc
+.env
+.env.*
+.claude/settings.local.json
+.venv/

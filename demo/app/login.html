@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TravelDesk — Sign in</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; display: flex; justify-content: center; padding-top: 80px; }
+    form { background: #fff; padding: 28px; border-radius: 10px; width: 320px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    label { display: block; margin-top: 14px; font-size: 14px; }
+    input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+    button { margin-top: 18px; width: 100%; padding: 10px; background: #00857a; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+    button:disabled { background: #9bb; cursor: not-allowed; }
+    [role="alert"] { color: #c0344e; font-size: 13px; margin-top: 10px; min-height: 16px; }
+    #welcome { color: #00857a; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <form id="login" novalidate aria-labelledby="title">
+      <h1 id="title">Sign in</h1>
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <div role="alert" id="error"></div>
+      <button type="submit" id="submit">Sign in</button>
+      <p id="welcome" hidden></p>
+    </form>
+  </main>
+
+  <script>
+    // Demo credentials: this page is a fixture, not a real system.
+    const VALID_EMAIL = 'traveller@example.com';
+    const VALID_PASSWORD = 'Test-Pass-123';
+    const MAX_ATTEMPTS = 3;
+    let failedAttempts = 0;
+
+    const form = document.getElementById('login');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const error = document.getElementById('error');
+    const submit = document.getElementById('submit');
+    const welcome = document.getElementById('welcome');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      error.textContent = '';
+      const emailVal = email.value.trim();
+
+      if (!emailVal) { error.textContent = 'Email is required.'; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { error.textContent = 'Enter a valid email address.'; return; }
+      if (!password.value) { error.textContent = 'Password is required.'; return; }
+
+      if (emailVal.toLowerCase() === VALID_EMAIL && password.value === VALID_PASSWORD) {
+        failedAttempts = 0;
+        welcome.textContent = 'Welcome back, traveller!';
+        welcome.hidden = false;
+        return;
+      }
+
+      failedAttempts += 1;
+      if (failedAttempts >= MAX_ATTEMPTS) {
+        error.textContent = 'Too many failed attempts. Your account is temporarily locked.';
+        submit.disabled = true;
+        return;
+      }
+      error.textContent = 'Incorrect email or password.';
+    });
+  </script>
+</body>
+</html>
