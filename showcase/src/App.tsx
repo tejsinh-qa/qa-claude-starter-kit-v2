@@ -1,11 +1,26 @@
-import { useEffect, useState } from 'react'
-import { SCENES } from './content/scenes'
-import { gateReason, type Preflight } from './preflight'
+import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { SCENES, sceneUsesTerminal } from './content/scenes'
+import { gateReason, preflightChecks, type Preflight } from './preflight'
 import { Stage } from './Stage'
 import { TerminalDeck } from './TerminalDeck'
 import { typeLines } from './terminalBus'
 
 const LAST = SCENES.length - 1
+const ZOOM_STEPS = [0.9, 1, 1.1, 1.2, 1.3, 1.45, 1.6]
+const ZOOM_KEY = 'showcase-zoom'
+
+function initialZoom() {
+  const saved = Number(window.localStorage.getItem(ZOOM_KEY))
+  if (ZOOM_STEPS.includes(saved)) return saved
+  return window.innerWidth >= 1800 ? 1.2 : 1
+}
+
+function stepZoom(current: number, direction: 1 | -1) {
+  const index = ZOOM_STEPS.indexOf(current)
+  const next = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, (index < 0 ? 1 : index) + direction))]
+  window.localStorage.setItem(ZOOM_KEY, String(next))
+  return next
+}
 
 export function App() {
   const [index, setIndex] = useState(0)
@@ -15,7 +30,9 @@ export function App() {
   const [serverDown, setServerDown] = useState(false)
   const [sending, setSending] = useState<string | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
+  const [zoom, setZoom] = useState(initialZoom)
   const scene = SCENES[index]
+  const usesTerminal = sceneUsesTerminal(scene)
   const blocked = gateReason(preflight, serverDown)
 
   useEffect(() => {
@@ -43,8 +60,10 @@ export function App() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      const active = document.activeElement
+      if (active instanceof HTMLElement && active.closest('.terminal-deck, .xterm, textarea')) return
       const target = event.target
-      if (target instanceof HTMLElement && target.closest('.xterm, input, textarea')) return
+      if (target instanceof HTMLElement && target.closest('.terminal-deck, .xterm, textarea, input')) return
 
       if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
         event.preventDefault()
@@ -72,6 +91,16 @@ export function App() {
       } else if (event.key === 's' || event.key === 'S') {
         event.preventDefault()
         setNotesOpen((open) => !open)
+      } else if (event.key === '+' || event.key === '=') {
+        event.preventDefault()
+        setZoom((current) => stepZoom(current, 1))
+      } else if (event.key === '-' || event.key === '_') {
+        event.preventDefault()
+        setZoom((current) => stepZoom(current, -1))
+      } else if (event.key === '0') {
+        event.preventDefault()
+        window.localStorage.removeItem(ZOOM_KEY)
+        setZoom(1)
       }
     }
 
@@ -83,8 +112,8 @@ export function App() {
     if (blocked || sending) return
     const replay = actionId.startsWith('replay:') ? actionId.slice('replay:'.length) : null
     const action = scene.actions.find((item) => item.id === actionId)
-    const session = action?.session ?? (replay ? scene.session : null)
-    const lines = action?.lines ?? (replay ? [`python evals/run_evals.py --replay "evals/recordings/${replay}"`] : null)
+    const session = action?.session ?? (replay ? scene.window : null)
+    const lines = action?.lines ?? (replay ? [`.\\.venv\\Scripts\\python.exe evals\\run_evals.py --replay "evals\\recordings\\${replay}"`] : null)
     if (!session || !lines) return
     if (replay && (replay.includes('..') || replay.includes('/') || replay.includes('\\') || replay === 'sample_run.json')) return
     setRunError(null)
@@ -99,43 +128,50 @@ export function App() {
   }
 
   return (
-    <div className={notesOpen ? 'shell with-notes' : 'shell'}>
+    <div className={notesOpen ? 'shell with-notes' : 'shell'} style={{ '--zoom': zoom } as CSSProperties}>
       <nav className="rail" aria-label="Run of show">
         <p className="brand">
           QA × Claude
           <span>Run of show</span>
         </p>
         <ol>
-          {SCENES.map((item, itemIndex) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={itemIndex === index ? 'active' : undefined}
-                aria-current={itemIndex === index ? 'step' : undefined}
-                onClick={() => setIndex(itemIndex)}
-              >
-                <span className="nav-n">{String(itemIndex + 1).padStart(2, '0')}</span>
-                {item.nav}
-              </button>
-            </li>
-          ))}
+          {SCENES.map((item, itemIndex) => {
+            const showGroup = itemIndex === 0 || item.group !== SCENES[itemIndex - 1].group
+            return (
+              <li key={item.id}>
+                {showGroup ? <p className="nav-group">{item.group}</p> : null}
+                <button
+                  type="button"
+                  className={itemIndex === index ? 'active' : undefined}
+                  aria-current={itemIndex === index ? 'step' : undefined}
+                  onClick={() => setIndex(itemIndex)}
+                >
+                  {item.nav}
+                  {item.canCut && notesOpen ? <span className="cut-tag">can cut</span> : null}
+                </button>
+              </li>
+            )
+          })}
         </ol>
-        <p className="rail-hint">← → · S notes · ? help</p>
+        <p className="rail-hint">
+          <span>
+            {index + 1} of {SCENES.length}
+          </span>
+          <Pace index={index} />
+        </p>
       </nav>
+      <button type="button" className="rail-resize" aria-label="Resize navigation" onPointerDown={onRailResize} />
 
-      <div className={scene.session ? 'column' : 'column no-terminal'}>
+      <div className={usesTerminal ? 'column' : 'column no-terminal'}>
         <PreflightStrip preflight={preflight} serverDown={serverDown} />
         <main>
           <Stage scene={scene} preflight={preflight} blocked={blocked} sending={sending} onRun={(id) => void onRun(id)} />
-          {runError ? <p className="gate">{runError}</p> : null}
-          <p className="progress">
-            {index + 1} / {SCENES.length}
-          </p>
+          {runError ? <p className="gate run-error">{runError}</p> : null}
         </main>
-        <TerminalDeck active={scene.session} />
+        <TerminalDeck active={usesTerminal ? scene.window : null} fontSize={Math.round(16 * zoom)} />
         {notesOpen ? (
           <aside className="notes" aria-label="Speaker notes">
-            <p className="kicker">Speaker</p>
+            <p className="notes-label">Speaker</p>
             <p>{scene.notes}</p>
           </aside>
         ) : null}
@@ -165,10 +201,13 @@ export function App() {
                 <kbd>S</kbd> Speaker notes
               </li>
               <li>
+                <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> Larger, smaller, reset text
+              </li>
+              <li>
                 <kbd>?</kbd> This help
               </li>
             </ul>
-            <p>Run types the next command. Approve edits in the terminal. Keys typed in the terminal stay there.</p>
+            <p>Run types the next command. Approve edits in the terminal. The terminal follows new output; scroll up to pause, then choose Latest output.</p>
           </div>
         </div>
       ) : null}
@@ -176,29 +215,92 @@ export function App() {
   )
 }
 
-function PreflightStrip({ preflight, serverDown }: { preflight: Preflight | null; serverDown: boolean }) {
-  if (serverDown) return <p className="preflight bad">Terminal server is not running.</p>
-  if (!preflight) return <p className="preflight">Checking this laptop…</p>
+function onRailResize(event: ReactPointerEvent<HTMLButtonElement>) {
+  const shell = event.currentTarget.parentElement
+  if (!shell) return
+  event.preventDefault()
+  const rail = shell.querySelector('.rail')
+  if (!rail) return
+  const startX = event.clientX
+  const startW = rail.getBoundingClientRect().width
+  const move = (ev: PointerEvent) => {
+    const next = Math.min(480, Math.max(220, startW + ev.clientX - startX))
+    shell.style.setProperty('--rail-w', `${Math.round(next)}px`)
+  }
+  const stop = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', stop)
+  }
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', stop)
+}
+
+function minutesOf(hhmm: string) {
+  const [hours, minutes] = hhmm.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function Pace({ index }: { index: number }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 20000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const scene = SCENES[index]
+  const planned = minutesOf(scene.at)
+  const next = SCENES.slice(index + 1).find((item) => minutesOf(item.at) > planned)
+  const current = now.getHours() * 60 + now.getMinutes()
+  const clock = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+  const duringTalk = current >= minutesOf(SCENES[0].at) - 30 && current <= minutesOf(SCENES[LAST].at) + 60
+  if (!duringTalk) return <span title="Planned start for this scene">Planned {scene.at}</span>
+
+  const late = next ? current - minutesOf(next.at) : 0
   return (
-    <p className="preflight">
-      <Chip ok={preflight.claudeOnPath} label={preflight.claudeOnPath ? 'claude on PATH' : 'claude missing'} />
-      <Chip ok={preflight.demoStart} label={preflight.demoStart ? 'demo-start' : 'no demo-start tag'} />
-      <Chip
-        ok={preflight.playwright === 'pass'}
-        label={
-          preflight.playwright === 'pending'
-            ? 'Playwright running'
-            : preflight.playwright === 'pass'
-              ? preflight.playwrightSummary
-              : 'Playwright failed'
-        }
-      />
-      <Chip ok={preflight.agentKey === 'ready'} label={preflight.agentKey === 'ready' ? 'agent key ready' : 'ANTHROPIC_API_KEY in .env'} />
-      <Chip ok={preflight.evalsKey === 'ready'} label={preflight.evalsKey === 'ready' ? 'evals key ready' : 'same .env key for evals'} />
-    </p>
+    <span className={late > 0 ? 'pace late' : 'pace'} title={`Planned ${scene.at}${next ? `, next section ${next.at}` : ''}`}>
+      {clock} · {late > 0 ? `${late} min behind` : 'on time'}
+    </span>
   )
 }
 
-function Chip({ ok, label }: { ok: boolean; label: string }) {
-  return <span className={ok ? 'chip ok' : 'chip'}>{label}</span>
+function PreflightStrip({ preflight, serverDown }: { preflight: Preflight | null; serverDown: boolean }) {
+  const [open, setOpen] = useState(false)
+  if (serverDown) return <div className="preflight bad">Terminal server is not running. Restart npm run showcase.</div>
+  if (!preflight) return <div className="preflight">Checking this laptop…</div>
+  const checks = preflightChecks(preflight)
+  const failing = checks.filter((check) => !check.ok)
+  const pending = preflight.playwright === 'pending'
+  const summary = pending ? 'Checking…' : failing.length === 0 ? 'Ready' : `${failing.length} to check`
+  const tone = pending ? 'pending' : failing.length === 0 ? 'ok' : 'warn'
+  return (
+    <div className={open ? 'preflight is-open' : 'preflight'}>
+      <button
+        type="button"
+        className={`status-pill ${tone}`}
+        aria-expanded={open}
+        title={failing.map((check) => check.label).join(' · ') || 'All checks passed'}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <i className="status-dot" />
+        {summary}
+      </button>
+      {open ? (
+        <>
+          {checks.map((check) => (
+            <span key={check.label} className={check.ok ? 'chip ok' : 'chip'}>
+              {check.label}
+            </span>
+          ))}
+          <button
+            type="button"
+            className="chip recheck"
+            disabled={pending}
+            onClick={() => void fetch('/api/preflight/refresh', { method: 'POST' })}
+          >
+            Check again
+          </button>
+        </>
+      ) : null}
+    </div>
+  )
 }

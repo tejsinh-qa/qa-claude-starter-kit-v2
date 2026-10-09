@@ -51,6 +51,8 @@ const state = {
   demoStart: false,
   playwright: 'pending',
   playwrightSummary: 'Running the seed tests…',
+  passedCount: null,
+  testsClean: null,
   agentKey: keyReady ? 'ready' : 'missing',
   evalsKey: keyReady ? 'ready' : 'missing',
   recordings: [],
@@ -97,24 +99,57 @@ function run(command, args, shell = false) {
   })
 }
 
-async function refreshChecks() {
+let checking = null
+
+function refreshChecks() {
+  checking ??= runChecks().finally(() => {
+    checking = null
+  })
+  return checking
+}
+
+async function runChecks() {
   state.recordings = listRecordings()
+  state.playwright = 'pending'
+  state.playwrightSummary = 'Running the seed tests…'
   const claude = await run('where.exe', ['claude'])
   state.claudeOnPath = claude.ok && claude.stdout.trim().length > 0
   const tag = await run('git', ['tag', '--list', 'demo-start'])
   state.demoStart = tag.ok && tag.stdout.trim() === 'demo-start'
+  if (state.demoStart) {
+    const diff = await run('git', ['diff', '--quiet', 'demo-start', '--', 'tests/'])
+    const extra = await run('git', ['ls-files', '--others', '--exclude-standard', '--', 'tests/'])
+    state.testsClean = diff.ok && extra.ok && extra.stdout.trim() === ''
+  } else {
+    state.testsClean = null
+  }
   const tests = await run('cmd.exe', ['/d', '/s', '/c', 'npx playwright test'])
   const combined = redact(`${tests.stdout}\n${tests.stderr}`).trim()
   const lines = combined.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
   const passed = lines.find((line) => /\d+\s+passed/.test(line))
+  state.passedCount = passed ? Number(passed.match(/(\d+)\s+passed/)[1]) : null
   state.playwright = tests.ok ? 'pass' : 'fail'
   state.playwrightSummary = (passed ?? lines.at(-1) ?? (tests.ok ? 'passed' : 'failed')).slice(0, 240)
+}
+
+function prependPath(env, dir) {
+  const key = Object.keys(env).find((item) => item.toLowerCase() === 'path') ?? 'Path'
+  env[key] = `${dir};${env[key] ?? ''}`
 }
 
 function openSession(name) {
   const env = stringEnv(process.env)
   delete env.ANTHROPIC_API_KEY
+  const venvScripts = path.join(repoRoot, '.venv', 'Scripts')
+  const useVenv = name !== 'main' && fs.existsSync(path.join(venvScripts, 'python.exe'))
   if (name !== 'main' && keyReady) env.ANTHROPIC_API_KEY = apiKey
+  if (useVenv) {
+    env.VIRTUAL_ENV = path.join(repoRoot, '.venv')
+    prependPath(env, venvScripts)
+  }
+  env.TERM = 'xterm-256color'
+  env.COLORTERM = 'truecolor'
+  env.FORCE_COLOR = '3'
   const shell = pty.spawn('powershell.exe', ['-NoLogo', '-NoExit'], {
     name: 'xterm-256color',
     cols: 120,
@@ -132,6 +167,12 @@ function openSession(name) {
     }
   })
   sessions.set(name, { shell, clients, replay: () => scrollback })
+  if (useVenv) {
+    setTimeout(() => {
+      shell.write('Set-ExecutionPolicy -Scope Process Bypass -Force; .\\.venv\\Scripts\\Activate.ps1')
+      setTimeout(() => shell.write('\r'), 400)
+    }, 600)
+  }
 }
 
 for (const name of ['main', 'agent', 'evals']) openSession(name)
@@ -142,6 +183,15 @@ const server = createServer((req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/preflight') {
     res.setHeader('Content-Type', 'application/json')
     res.end(JSON.stringify(state))
+    return
+  }
+  if (req.method === 'POST' && url.pathname === '/api/preflight/refresh') {
+    void refreshChecks().catch(() => {
+      state.playwright = 'fail'
+      state.playwrightSummary = 'Preflight could not finish'
+    })
+    res.statusCode = 202
+    res.end()
     return
   }
   res.statusCode = 404
